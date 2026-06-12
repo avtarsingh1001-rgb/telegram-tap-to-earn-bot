@@ -1,2 +1,1 @@
-# fantastic-pancake
-CncmvdVfVGgm29pT329VYHgQqjKfC6TotrXCvuTdpump
+telegram-tap-to-earn-bot
