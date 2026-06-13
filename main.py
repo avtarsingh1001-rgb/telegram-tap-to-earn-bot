@@ -3,6 +3,7 @@ Main entry point for the Telegram Tap-to-Earn Bot
 """
 import asyncio
 import logging
+from aiohttp import web
 from aiogram import Dispatcher, Bot
 from aiogram.types import BotCommand, BotCommandScopeDefault
 from config import BOT_TOKEN, LOG_LEVEL, LOG_FILE
@@ -34,11 +35,28 @@ async def set_commands(bot: Bot):
     logger.info("Bot commands set successfully")
 
 
+async def health_handler(request):
+    """Health check endpoint for the platform"""
+    return web.Response(text='{"status":"ok"}', content_type="application/json")
+
+
+async def run_health_server():
+    """Run a minimal HTTP health server on port 8000"""
+    app = web.Application()
+    app.router.add_get("/", health_handler)
+    app.router.add_get("/health", health_handler)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 8000)
+    await site.start()
+    logger.info("Health server started on port 8000")
+
+
 async def main():
     """Main bot function"""
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
-    
+
     # Register handlers
     dp.include_router(start.router)
     dp.include_router(tap.router)
@@ -46,12 +64,15 @@ async def main():
     dp.include_router(leaderboard.router)
     dp.include_router(tasks.router)
     dp.include_router(referral.router)
-    
+
     # Set bot commands
     await set_commands(bot)
-    
+
+    # Start health server alongside the bot
+    await run_health_server()
+
     logger.info("Bot started successfully!")
-    
+
     try:
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
     finally:
